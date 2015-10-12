@@ -1,0 +1,35 @@
+bash -c '
+PACKAGE_URL="http://silvchef001.ir.intel.com:8080/chef-12.1.2-1.el6.x86_64.rpm"
+
+if [ ! -f /usr/bin/chef-client ]; then
+  curl -o /tmp/chef-client-package.rpm $PACKAGE_URL
+  rpm -Uvh /tmp/chef-client-package.rpm
+fi
+
+mkdir -p /etc/chef
+
+cat > /etc/chef/validation.pem << EOL
+<%= validation_key %>
+EOL
+
+chmod 0600 /etc/chef/validation.pem
+
+cat > /tmp/installed << EOL
+installed
+EOL
+
+cat > /etc/chef/first-boot.json << EOL
+<%= first_boot.to_json %>
+EOL
+
+cat > /etc/chef/client.rb << EOL
+log_level        :info
+log_location     STDOUT
+ssl_verify_mode  :verify_none
+chef_server_url  "https://silvchef001.ir.intel.com/organizations/intel"
+validation_client_name "intel-validator"
+Ohai::Config[:disabled_plugins] = [:Passwd]
+EOL
+
+<%= start_chef %>'
+

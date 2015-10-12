@@ -1,0 +1,13 @@
+.rake_test_cache
+.chef/syntax_check_cache/
+users/
+roles/
+nodes/
+clients/
+environments/
+.chef/chef-validator.pem
+.chef/knife-proxy.rb
+.chef/knife.rb
+.chef/syntax_check_cache
+.chef/tester.pem
+.chef/trusted_certs

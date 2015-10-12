@@ -1,0 +1,11 @@
+The purpose of these tests is to provide a basic framework for running Chef integration 
+tests in local mode for systemd. These should not be run from the Chef server; they
+should be executed from the client.
+
+The script must be executed from this directory in your Chef repo directory.
+
+This script takes a single argument:
+	<test number>: this will run the test matching the given number.
+
+Please run "chef-test-main.pl" without any arguments to view the help text and the
+list of available tests.
