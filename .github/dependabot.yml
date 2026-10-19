@@ -1,0 +1,29 @@
+---
+# Managed by https://github.com/dmzoneill/dmzoneill setup.sh.
+# Entries follow manifests detected in this repository.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+  - package-ecosystem: "bundler"
+    directories:
+      - "/cookbooks/krb5"
+      - "/cookbooks/sssd_ldap"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    groups:
+      bundler:
+        patterns:
+          - "*"
