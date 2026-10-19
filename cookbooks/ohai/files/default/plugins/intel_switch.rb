@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #
 # Author:: David O Neill (<david.m.oneill@intel.com>)
 # Copyright:: Copyright (c) 2010 Intel Corp.
@@ -9,7 +11,7 @@
 
 canonical = ::File.expand_path(
   '../../../../systemd_networkd/files/default/intel_switch.rb',
-  __FILE__
+  __dir__
 )
 if ::File.exist?(canonical)
   load canonical

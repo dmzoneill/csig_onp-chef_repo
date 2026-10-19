@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+# rubocop:disable Metrics/AbcSize, Metrics/BlockLength, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+
 #
 # Author:: David O Neill (<david.m.oneill@intel.com>)
 # Copyright:: Copyright (c) 2010 Intel Corp.
@@ -15,57 +19,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 Ohai.plugin(:IntelSwitch) do
-  provides "intel_switch"
+  provides 'intel_switch'
 
   # Yields each netdev that exposes a switch sysfs directory.
   def each_switch_netdev
-    listing = shell_out( "ls /sys/class/net/" )
+    listing = shell_out('ls /sys/class/net/')
     listing.stdout.lines do |line|
       name = line.strip
-      if File.directory?( "/sys/class/net/" + name + "/switch" )
-        yield name
-      end
+      yield name if File.directory?("/sys/class/net/#{name}/switch")
     end
   end
 
   # Walks parallel sysfs and attribute-name lists into [name, value] rows.
-  def collect_indexed_attrs( port , attrs_sysfs , attrs_sd )
-    ret = Array.new
-    for index in 0 ... attrs_sysfs.size
-      val = get_attr( port , attrs_sysfs[ index ] )
-      if val != ""
-        if val.include?( "index" )
-          ret = attr_add_multiple( ret , attrs_sd[ index ] , val )
+  def collect_indexed_attrs(port, attrs_sysfs, attrs_sd)
+    ret = []
+    (0...attrs_sysfs.size).each do |index|
+      val = get_attr(port, attrs_sysfs[index])
+      if val != ''
+        if val.include?('index')
+          ret = attr_add_multiple(ret, attrs_sd[index], val)
         else
-          attrarr = [ attrs_sd[ index ] , val ]
-          ret.push( attrarr )
+          attrarr = [attrs_sd[index], val]
+          ret.push(attrarr)
         end
       end
     end
-    return ret
+    ret
   end
 
   # Walks parallel sysfs and attribute-name lists into a Mash.
-  def map_prefixed_attrs( port , prefix , attrs_sysfs , attrs_sd )
+  def map_prefixed_attrs(port, prefix, attrs_sysfs, attrs_sd)
     ret = Mash.new
-    for index in 0 ... attrs_sysfs.size
-      val = get_attr( port , prefix + attrs_sysfs[ index ] )
-      if val != ""
-        ret[ attrs_sd[ index ] ] = val
-      end
+    (0...attrs_sysfs.size).each do |index|
+      val = get_attr(port, prefix + attrs_sysfs[index])
+      ret[attrs_sd[index]] = val if val != ''
     end
-    return ret
+    ret
   end
-
 
   # Gets the configuration for a port
   # Params:
   # +port+:: the netdev to query
   # Returns:
   # (Mash) the mash of the port configuration
-  def get_attributes( port )
+  def get_attributes(port)
     attrs_sysfs = %w[ def_cfi def_dscp def_pri def_swpri drop_bv drop_tagged
                       eee_mode eee_tx_activity_timeout eee_tx_lpi_timeout
                       fabric_loopback ignore_ifg_errors learning loopback
@@ -78,7 +76,7 @@ Ohai.plugin(:IntelSwitch) do
                       parser_vlan2_tag security_action tagging2 bcast_flooding
                       ucast_flooding mcast_flooding mcast_pruning bcast_pruning
                       ucast_pruning mac_table_address_aging_time max_frame_size lag_mode  ]
-   
+
     attrs_sd = %w[ DefCfi DefDscp DefPri DefSwpri DropBv DropTagged
                    EeeMode EeeTxActivityTimeout EeeTxLpiTimeout
                    FabricLoopback IgnoreIfgErrors Learning Loopback
@@ -92,16 +90,15 @@ Ohai.plugin(:IntelSwitch) do
                    UcastFlooding McastFlooding McastPruning BcastPruning
                    UcastPruning MacTableAddressAgingTime MaxFrameSize LagMode ]
 
-    return collect_indexed_attrs( port , attrs_sysfs , attrs_sd )
+    collect_indexed_attrs(port, attrs_sysfs, attrs_sd)
   end
-
 
   # Gets the QOS configuration for a port
   # Params:
   # +port+:: the netdev to query
   # Returns:
   # (Mash) the mash of the QOS configuration
-  def get_qos( port )
+  def get_qos(port)
     attrs_sysfs = %w[ auto_pause_mode dscp_swpri_map global_usage priv_wm shared_pri_wm
                       shared_soft_drop_wm shared_soft_drop_wm_hog shared_soft_drop_wm_jitter
                       shared_usage swpri_tc_map tc_smp_map trap_class_swpri_map vpri_swpri_map
@@ -124,228 +121,211 @@ Ohai.plugin(:IntelSwitch) do
                    CirCapacity ColorSource EirAction EirCapacity EirRate
                    DscpMkdnMap SwpriMkdnMap MkdnDscp MkdnSwpri DelPolicer ]
 
-    return collect_indexed_attrs( port , attrs_sysfs , attrs_sd )
+    collect_indexed_attrs(port, attrs_sysfs, attrs_sd)
   end
-
 
   # Gets the rate limiting configuration
   # Params:
   # +port+:: the netdev to query
   # Returns:
   # (Mash) the mash of the port configuration
-  def get_rate_limit( port )
-    attrs_sysfs = %w[ bcast_rate bcast_capacity mcast_rate mcast_capacity cpu_mac_rate cpu_mac_capacity 
-                      igmp_rate igmp_capacity icmp_rate icmp_capacity reserved_mac_rate reserved_mac_capacity 
+  def get_rate_limit(port)
+    attrs_sysfs = %w[ bcast_rate bcast_capacity mcast_rate mcast_capacity cpu_mac_rate cpu_mac_capacity
+                      igmp_rate igmp_capacity icmp_rate icmp_capacity reserved_mac_rate reserved_mac_capacity
                       mtu_viol_rate mtu_viol_capacity ]
 
-    attrs_sd = %w[ BcastRate BcastCapacity McastRate McastCapacity CpuMacRate CpuMacCapacity 
-                   IgmpRate IgmpCapacity IcmpRate IcmpCapacity ReservedMacRate ReservedMacCapacity 
+    attrs_sd = %w[ BcastRate BcastCapacity McastRate McastCapacity CpuMacRate CpuMacCapacity
+                   IgmpRate IgmpCapacity IcmpRate IcmpCapacity ReservedMacRate ReservedMacCapacity
                    MtuViolRate MtuViolCapacity ]
 
-    return map_prefixed_attrs( port , "" , attrs_sysfs , attrs_sd )
+    map_prefixed_attrs(port, '', attrs_sysfs, attrs_sd)
   end
-
 
   # Gets the L2 hashing configuration for a port
   # Params:
   # +port+:: the netdev to query
   # Returns:
   # (Mash) the mash of the L2 configuration
-  def get_l2_hash_key( port )
+  def get_l2_hash_key(port)
     attrs_sysfs = %w[ smac_mask dmac_mask ethertype_mask vlan_id1_mask vlan_pri1_mask symmetrize_mac
                       use_l3_hash use_l2_if_ip ]
 
-    attrs_sd = %w[ SmacMask DmacMask EthertypeMask VlanId1Mask VlanPri1Mask SymmetrizeMac 
+    attrs_sd = %w[ SmacMask DmacMask EthertypeMask VlanId1Mask VlanPri1Mask SymmetrizeMac
                    UseL3Hash UseL2IfIp ]
 
-    return map_prefixed_attrs( port , "l2_hash_key_" , attrs_sysfs , attrs_sd )
+    map_prefixed_attrs(port, 'l2_hash_key_', attrs_sysfs, attrs_sd)
   end
-
 
   # Gets the L3 hashing configuration for a port
   # Params:
   # +port+:: the netdev to query
   # Returns:
   # (Mash) the mash of the L3 configuration
-  def get_l3_hash_config( port )
-    attrs_sysfs = %w[ sip_mask dip_mask l4_src_mask l4_dst_mask dscp_mask isl_user_mask 
-                         protocol_mask flow_mask symmetrize_l3_fields ecmp_rotation protocol1 protocol2 
-                         use_tcp use_udp use_protocol1 use_protocol2 ]
+  def get_l3_hash_config(port)
+    attrs_sysfs = %w[ sip_mask dip_mask l4_src_mask l4_dst_mask dscp_mask isl_user_mask
+                      protocol_mask flow_mask symmetrize_l3_fields ecmp_rotation protocol1 protocol2
+                      use_tcp use_udp use_protocol1 use_protocol2 ]
 
-    attrs_sd = %w[ SipMask DipMask L4SrcMask L4DstMask DscpMask IslUserMask 
-                      ProtocolMask FlowMask SymmetrizeL3Fields EcmpRotation Protocol1 Protocol2 
-                      UseTcp UseUdp UseProtocol1 UseProtocol2 ]
+    attrs_sd = %w[ SipMask DipMask L4SrcMask L4DstMask DscpMask IslUserMask
+                   ProtocolMask FlowMask SymmetrizeL3Fields EcmpRotation Protocol1 Protocol2
+                   UseTcp UseUdp UseProtocol1 UseProtocol2 ]
 
-    return map_prefixed_attrs( port , "l3_hash_config_" , attrs_sysfs , attrs_sd )
+    map_prefixed_attrs(port, 'l3_hash_config_', attrs_sysfs, attrs_sd)
   end
 
-
-  # Gets the port atrribute value
+  # Adds one indexed port attribute value
   # Params:
   # +arr+:: the arr to add the values to
   # +key+:: the attribute to query from sysfs
-  # +indexvals+:: the index values that are to be split 
+  # +indexvals+:: the index values that are to be split
   # Returns:
   # (Mash) return the entire Mash
-  def attr_add_multiple( arr , key , indexvals )
+  def attr_add_multiple(arr, key, indexvals)
     indexvals = indexvals.strip
 
-    if indexvals.include?( "\n" )
-      lines = indexvals.split( "\n" )
-      for line in 0 ... lines.size
-        parts = lines[ line ].split( /index/ )
-        attrarr = [ key , parts[1].strip + " " + parts[0].strip ]
-        arr.push( attrarr )
+    if indexvals.include?("\n")
+      lines = indexvals.split("\n")
+      (0...lines.size).each do |line|
+        parts = lines[line].split(/index/)
+        attrarr = [key, "#{parts[1].strip} #{parts[0].strip}"]
+        arr.push(attrarr)
       end
     else
-      parts = indexvals.split( /index/ )
-      attrarr = [ key , parts[1].strip + " " + parts[0].strip ]
-      arr.push( attrarr )
+      parts = indexvals.split(/index/)
+      attrarr = [key, "#{parts[1].strip} #{parts[0].strip}"]
+      arr.push(attrarr)
     end
-    
-    return arr
+
+    arr
   end
 
-
-  # Gets the port atrribute value
+  # Gets the port attribute value
   # Params:
   # +port+:: the netdev to query
   # +attr+:: the attribute to query from sysfs
   # Returns:
   # (string) the value
-  def get_attr( port , attr )
-    if File.exists?( "/sys/class/net/" + port + "/switch/" + attr )
+  def get_attr(port, attr)
+    if File.exist?("/sys/class/net/#{port}/switch/#{attr}")
       begin
-        fb = File.open( "/sys/class/net/" + port + "/switch/" + attr , "r" )
+        fb = File.open("/sys/class/net/#{port}/switch/#{attr}", 'r')
         contents = fb.read
       rescue SystemCallError
-        contents = ""
+        contents = ''
       end
     else
-      contents = ""
+      contents = ''
     end
-    return contents.chomp
+    contents.chomp
   end
-
 
   # Gets the up/down state of a port
   # Params:
   # +port+:: the netdev to query
   # Returns:
   # (string) "true" / "false"
-  def get_state( port )
-    line = shell_out( "ip link show " + port + " | head -n 1" ).stdout.strip
+  def get_state(port)
+    line = shell_out("ip link show #{port} | head -n 1").stdout.strip
 
     if line =~ /state (\w+)/
-      if $1.downcase == "up"
-        return true
-      else
-        return false
-      end
+      return true if Regexp.last_match(1).downcase == 'up'
+
+      return false
+
     end
 
-    return false
+    false
   end
-
 
   # Inspects Port configuration
   # Params:
-  def get_ports
+  def switch_ports
     ports = Mash.new
 
     each_switch_netdev do |name|
-      if name == "sw0p0"
+      if name == 'sw0p0'
         ports[ name ] = {
-          :Attributes => get_attributes( name ),
-          :QOS => get_qos( name ),
-          :RateLimit => get_rate_limit( name ),
-          :L2HashKey => get_l2_hash_key( name ),
-          :L3HashConfig => get_l3_hash_config( name )
+          Attributes: get_attributes(name),
+          QOS: get_qos(name),
+          RateLimit: get_rate_limit(name),
+          L2HashKey: get_l2_hash_key(name),
+          L3HashConfig: get_l3_hash_config(name)
         }
-      else
-        if is_port( name ) == true
-          ports[ name ] = {
-            :Enabled => get_state( name ),
-            :Attributes => get_attributes( name ),
-            :RateLimit => get_rate_limit( name ),
-            :Vlans => get_vlans( name ),
-            :QOS => get_qos( name ),
-            :FDB => get_fdbs( name )
-          }
-        end
+      elsif port?(name) == true
+        ports[ name ] = {
+          Enabled: get_state(name),
+          Attributes: get_attributes(name),
+          RateLimit: get_rate_limit(name),
+          Vlans: get_vlans(name),
+          QOS: get_qos(name),
+          FDB: get_fdbs(name)
+        }
       end
     end
 
-    return ports
+    ports
   end
-
 
   # Checks to see if netdev is a port
   # Params:
-  def is_port( netdev )
-    so = shell_out( "ip link" )
+  def port?(netdev)
+    so = shell_out('ip link')
 
     so.stdout.lines do |line|
-      if line =~ /master #{netdev}/
-        return false
-      end
+      return false if line =~ /master #{netdev}/
     end
 
-    return true
+    true
   end
-
 
   # Inspects the team configuration
   # Params:
-  def get_teams
+  def switch_teams
     teams = Mash.new
 
     # get all the masters
     each_switch_netdev do |name|
-      portline = shell_out( "ip link show " + name + " | head -n 1" ).stdout.strip
-      if portline =~ /master (\w+)/
-        if teams.key?( $1 ) == false
-          teams[ $1 ] = {
-            "Enabled" => get_state( $1 ),
-            "Members" => get_team_members( $1 ),
-            "Attributes" => get_attributes( $1 ),
-            "Vlans" => get_vlans( $1 ),
-            "FDB" => get_fdbs( $1 )
-          }
-        end
-      end
+      portline = shell_out("ip link show #{name} | head -n 1").stdout.strip
+      next unless portline =~ /master (\w+)/
+
+      master = Regexp.last_match(1)
+      next unless teams.key?(master) == false
+
+      teams[master] = {
+        'Enabled' => get_state(master),
+        'Members' => get_team_members(master),
+        'Attributes' => get_attributes(master),
+        'Vlans' => get_vlans(master),
+        'FDB' => get_fdbs(master)
+      }
     end
 
-    return teams
+    teams
   end
-
 
   # Gets the members of a team netdev
   # Params:
   # +master+:: The team netdev to get the member ports
-  def get_team_members( master )
-    members = Array.new
+  def get_team_members(master)
+    members = []
 
     # get all the masters
     each_switch_netdev do |name|
-      portline = shell_out( "ip link show " + name + " | head -n 1" ).stdout.strip
-      if portline =~ /\d+: (\w+):.*?master #{master}/
-        members.push( $1 )
-      end
+      portline = shell_out("ip link show #{name} | head -n 1").stdout.strip
+      members.push(Regexp.last_match(1)) if portline =~ /\d+: (\w+):.*?master #{master}/
     end
 
-    return members
+    members
   end
-
 
   # Gets the vlans assigned to a netdev
   # Params:
   # +master+:: The netdev to get the vlans off
-  def get_vlans( netdev )
+  def get_vlans(netdev)
     vlans = Mash.new
-    ids = Array.new
+    ids = []
 
-    so = shell_out( "bridge vlan show dev " + netdev )
+    so = shell_out("bridge vlan show dev #{netdev}")
 
     # port    vlan ids
     # team1    1 PVID Egress Untagged
@@ -360,128 +340,117 @@ Ohai.plugin(:IntelSwitch) do
     hasvlan = false
 
     so.stdout.lines do |line|
-    
       if line =~ /^port\s+vlan\s+ids$/
         hasvlan = true
       else
-        if hasvlan == false
-          break
-        end
+        break if hasvlan == false
 
-        tag = "tag" + i.to_s
-        
+        tag = "tag#{i}"
+
         if line =~ /\s(\d+)\s+(Egress Untagged)?/
-          tagged = ( $2 == nil ) ? "false" : "true"
-          unless ids.include?( $1 )
-            vlans[ tag ]= {
-              "Id" => $1,
-              "EgressUntagged" => tagged
+          tagged = Regexp.last_match(2).nil? ? 'false' : 'true'
+          unless ids.include?(Regexp.last_match(1))
+            vlans[ tag ] = {
+              'Id' => Regexp.last_match(1),
+              'EgressUntagged' => tagged
             }
             i += 1
-            ids.push( $1 )
+            ids.push(Regexp.last_match(1))
           end
         end
 
         if line =~ /\s(\d+)\s+i(PVID )(Egress Untagged)?/
-          tagged = ( $3 == nil ) ? "false" : "true"
-          unless ids.include?( $1 )
+          tagged = Regexp.last_match(3).nil? ? 'false' : 'true'
+          unless ids.include?(Regexp.last_match(1))
             vlans[ tag ] = {
-              "Id" => $1,
-              "Pvid" => $2,
-              "EgressUntagged" => tagged
+              'Id' => Regexp.last_match(1),
+              'Pvid' => Regexp.last_match(2),
+              'EgressUntagged' => tagged
             }
             i += 1
-            ids.push( $1 )
+            ids.push(Regexp.last_match(1))
           end
         end
 
       end
-
     end
-   
-    return vlans
+
+    vlans
   end
-  
-  
+
   # Inspects FDB configuration
   # Params:
-  def get_fdbs( netdev )
-    fdbs = Array.new
+  def get_fdbs(netdev)
+    fdbs = []
 
-    so = shell_out( "bridge fdb show brport " + netdev )
-    
+    so = shell_out("bridge fdb show brport #{netdev}")
+
     so.stdout.lines do |line|
       # ab:bc:cc:00:01:02 vlan 3 self permanent
-      if line.strip =~ /^(([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])) vlan (\d+).*?$/ 
-        line.strip.match /^(([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])) vlan (\d+).*?$/
-        entry = [ "MACAddress" , $1 , "VLANId" , $4 ]
-        fdbs.push( entry )
+      if line.strip =~ /^(([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])) vlan (\d+).*?$/
+        line.strip.match(/^(([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])) vlan (\d+).*?$/)
+        entry = ['MACAddress', Regexp.last_match(1), 'VLANId', Regexp.last_match(4)]
+        fdbs.push(entry)
       end
     end
 
-    return fdbs
+    fdbs
   end
-  
- 
-  # Gets any ports bound to this netdev and returns them as an array 
-  def get_ufd_port_binds( netdev )
-    Ohai::Log.debug( "Master: " + netdev )   
+
+  # Gets any ports bound to this netdev and returns them as an array
+  def get_ufd_port_binds(netdev)
+    Ohai::Log.debug("Master: #{netdev}")
     bound = false
-    boundports = Array.new
-    so = shell_out( "networkctl status " + netdev )
+    boundports = []
+    so = shell_out("networkctl status #{netdev}")
 
     so.stdout.lines do |line|
       if bound == true
-        if line.strip.match( /([a-zA-Z0-9]+)/ )
-          Ohai::Log.debug( "Match: " + $1 )
-          if is_port( $1 ) == true
-            Ohai::Log.debug( "Add port: " + $1 )
-            boundports.push( $1 )
-          else
-            break
-          end
-        else
-          break
-        end
-      elsif line.strip.match( /Carrier Bound To:\s+([a-zA-Z0-9]+)/ )
-        Ohai::Log.debug( "Carrier bound to: " + $1 )
-        if is_port( $1 ) == true
-          Ohai::Log.debug( "Confirmed master: " + $1 )
-          boundports.push( $1 )
+        break unless line.strip.match(/([a-zA-Z0-9]+)/)
+
+        Ohai::Log.debug("Match: #{Regexp.last_match(1)}")
+        break unless port?(Regexp.last_match(1)) == true
+
+        Ohai::Log.debug("Add port: #{Regexp.last_match(1)}")
+        boundports.push(Regexp.last_match(1))
+
+      elsif line.strip.match(/Carrier Bound To:\s+([a-zA-Z0-9]+)/)
+        Ohai::Log.debug("Carrier bound to: #{Regexp.last_match(1)}")
+        if port?(Regexp.last_match(1)) == true
+          Ohai::Log.debug("Confirmed master: #{Regexp.last_match(1)}")
+          boundports.push(Regexp.last_match(1))
           bound = true
         end
       end
     end
 
-    return boundports
+    boundports
   end
 
   # Inspects UFD configuration
   # Params:
-  def get_ufd
+  def switch_ufd
     ret = Mash.new
 
     # get all the masters
     each_switch_netdev do |name|
-      boundports = get_ufd_port_binds( name )
-      if boundports.length > 0
-        ret[ name ] = {
-          "Enabled" => true,
-          "BindCarrier" => boundports.join( " " )
-        }
-      end
+      boundports = get_ufd_port_binds(name)
+      next unless boundports.length.positive?
+
+      ret[ name ] = {
+        'Enabled' => true,
+        'BindCarrier' => boundports.join(' ')
+      }
     end
 
-    return ret
+    ret
   end
-
 
   collect_data do
     intel_switch Mash.new
-    intel_switch[:Teams] = get_teams
-    intel_switch[:UFD] = get_ufd
-    intel_switch[:Ports] = get_ports
+    intel_switch[:Teams] = switch_teams
+    intel_switch[:UFD] = switch_ufd
+    intel_switch[:Ports] = switch_ports
   end
-
 end
-
+# rubocop:enable Metrics/AbcSize, Metrics/BlockLength, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity

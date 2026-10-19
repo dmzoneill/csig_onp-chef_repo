@@ -11,7 +11,7 @@ module SystemdNetworkdLayout
 
   def networkd_record(section, key)
     cfg = systemd_networkd
-    return nil unless cfg && cfg.include?(section) && cfg[section].include?(key)
+    return nil unless cfg&.include?(section) && cfg[section].include?(key)
 
     cfg[section][key]
   end
@@ -19,7 +19,7 @@ module SystemdNetworkdLayout
   # Enabled is exactly true. Does not treat a backup run as enabled.
   def networkd_enabled?(section, key)
     record = networkd_record(section, key)
-    return false unless record && record.include?('Enabled')
+    return false unless record&.include?('Enabled')
 
     record['Enabled'] == true
   end
@@ -31,7 +31,7 @@ module SystemdNetworkdLayout
   # True when the port is enabled, or this converge is a backup run.
   def port_or_backup?(port)
     settings = port_settings(port)
-    return false unless settings && settings.include?('Enabled')
+    return false unless settings&.include?('Enabled')
 
     settings['Enabled'] == true || systemd_networkd['Backup'] == true
   end
@@ -50,4 +50,4 @@ module SystemdNetworkdLayout
   end
 end
 
-Chef::Recipe.send(:include, SystemdNetworkdLayout)
+Chef::Recipe.include SystemdNetworkdLayout
