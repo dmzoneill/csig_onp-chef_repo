@@ -10,12 +10,7 @@
 outdir = node[ "SystemdNetworkd" ][ "outdir" ]
 
 ### Create network/ufd directory if necessary ###
-directory "#{outdir}/ufd" do
-  owner 'systemd-network'
-  group 'systemd-network'
-  mode '0755'
-  action :create
-end
+ensure_networkd_subdir( "ufd" )
 
 ### Create .netdev files for each ufd enable ###
 if node.include?( "SystemdNetworkd" )

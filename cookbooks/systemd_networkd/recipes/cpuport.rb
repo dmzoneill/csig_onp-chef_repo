@@ -10,12 +10,7 @@
 outdir = node[ "SystemdNetworkd" ][ "outdir" ]
 
 ### Create network/cpuport directory if necessary ###
-directory "#{outdir}/cpuport" do
-  owner 'systemd-network'
-  group 'systemd-network'
-  mode '0755'
-  action :create
-end
+ensure_networkd_subdir( "cpuport" )
 
 
 if node.include?( "SystemdNetworkd" )    

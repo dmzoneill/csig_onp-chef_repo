@@ -19,6 +19,46 @@
 Ohai.plugin(:IntelSwitch) do
   provides "intel_switch"
 
+  # Yields each netdev that exposes a switch sysfs directory.
+  def each_switch_netdev
+    listing = shell_out( "ls /sys/class/net/" )
+    listing.stdout.lines do |line|
+      name = line.strip
+      if File.directory?( "/sys/class/net/" + name + "/switch" )
+        yield name
+      end
+    end
+  end
+
+  # Walks parallel sysfs and attribute-name lists into [name, value] rows.
+  def collect_indexed_attrs( port , attrs_sysfs , attrs_sd )
+    ret = Array.new
+    for index in 0 ... attrs_sysfs.size
+      val = get_attr( port , attrs_sysfs[ index ] )
+      if val != ""
+        if val.include?( "index" )
+          ret = attr_add_multiple( ret , attrs_sd[ index ] , val )
+        else
+          attrarr = [ attrs_sd[ index ] , val ]
+          ret.push( attrarr )
+        end
+      end
+    end
+    return ret
+  end
+
+  # Walks parallel sysfs and attribute-name lists into a Mash.
+  def map_prefixed_attrs( port , prefix , attrs_sysfs , attrs_sd )
+    ret = Mash.new
+    for index in 0 ... attrs_sysfs.size
+      val = get_attr( port , prefix + attrs_sysfs[ index ] )
+      if val != ""
+        ret[ attrs_sd[ index ] ] = val
+      end
+    end
+    return ret
+  end
+
 
   # Gets the configuration for a port
   # Params:
@@ -26,8 +66,6 @@ Ohai.plugin(:IntelSwitch) do
   # Returns:
   # (Mash) the mash of the port configuration
   def get_attributes( port )
-    ret = Array.new
-
     attrs_sysfs = %w[ def_cfi def_dscp def_pri def_swpri drop_bv drop_tagged
                       eee_mode eee_tx_activity_timeout eee_tx_lpi_timeout
                       fabric_loopback ignore_ifg_errors learning loopback
@@ -54,19 +92,7 @@ Ohai.plugin(:IntelSwitch) do
                    UcastFlooding McastFlooding McastPruning BcastPruning
                    UcastPruning MacTableAddressAgingTime MaxFrameSize LagMode ]
 
-    for index in 0 ... attrs_sysfs.size
-      val = get_attr( port , attrs_sysfs[ index ] )
-      if val != ""
-        if val.include?( "index" )
-          ret = attr_add_multiple( ret , attrs_sd[ index ] , val )
-        else
-          attrarr = [ attrs_sd[ index ] , val ]
-          ret.push( attrarr )
-        end
-      end
-    end
-
-    return ret
+    return collect_indexed_attrs( port , attrs_sysfs , attrs_sd )
   end
 
 
@@ -76,8 +102,6 @@ Ohai.plugin(:IntelSwitch) do
   # Returns:
   # (Mash) the mash of the QOS configuration
   def get_qos( port )
-    ret = Array.new
-
     attrs_sysfs = %w[ auto_pause_mode dscp_swpri_map global_usage priv_wm shared_pri_wm
                       shared_soft_drop_wm shared_soft_drop_wm_hog shared_soft_drop_wm_jitter
                       shared_usage swpri_tc_map tc_smp_map trap_class_swpri_map vpri_swpri_map
@@ -100,19 +124,7 @@ Ohai.plugin(:IntelSwitch) do
                    CirCapacity ColorSource EirAction EirCapacity EirRate
                    DscpMkdnMap SwpriMkdnMap MkdnDscp MkdnSwpri DelPolicer ]
 
-    for index in 0 ... attrs_sysfs.size
-      val = get_attr( port , attrs_sysfs[ index ] )
-      if val != ""
-        if val.include?( "index" )
-          ret = attr_add_multiple( ret , attrs_sd[ index ] , val )
-        else
-          attrarr = [ attrs_sd[ index ] , val ]
-          ret.push( attrarr )
-        end
-      end
-    end
-
-    return ret
+    return collect_indexed_attrs( port , attrs_sysfs , attrs_sd )
   end
 
 
@@ -122,8 +134,6 @@ Ohai.plugin(:IntelSwitch) do
   # Returns:
   # (Mash) the mash of the port configuration
   def get_rate_limit( port )
-    ret = Mash.new
-
     attrs_sysfs = %w[ bcast_rate bcast_capacity mcast_rate mcast_capacity cpu_mac_rate cpu_mac_capacity 
                       igmp_rate igmp_capacity icmp_rate icmp_capacity reserved_mac_rate reserved_mac_capacity 
                       mtu_viol_rate mtu_viol_capacity ]
@@ -132,14 +142,7 @@ Ohai.plugin(:IntelSwitch) do
                    IgmpRate IgmpCapacity IcmpRate IcmpCapacity ReservedMacRate ReservedMacCapacity 
                    MtuViolRate MtuViolCapacity ]
 
-    for index in 0 ... attrs_sysfs.size
-      val = get_attr( port , attrs_sysfs[ index ] )
-      if val != ""
-        ret[ attrs_sd[ index ] ] = val 
-      end
-    end
-
-    return ret
+    return map_prefixed_attrs( port , "" , attrs_sysfs , attrs_sd )
   end
 
 
@@ -149,22 +152,13 @@ Ohai.plugin(:IntelSwitch) do
   # Returns:
   # (Mash) the mash of the L2 configuration
   def get_l2_hash_key( port )
-    ret = Mash.new
-
     attrs_sysfs = %w[ smac_mask dmac_mask ethertype_mask vlan_id1_mask vlan_pri1_mask symmetrize_mac
                       use_l3_hash use_l2_if_ip ]
 
     attrs_sd = %w[ SmacMask DmacMask EthertypeMask VlanId1Mask VlanPri1Mask SymmetrizeMac 
                    UseL3Hash UseL2IfIp ]
 
-    for index in 0 ... attrs_sysfs.size
-      val = get_attr( port , "l2_hash_key_" + attrs_sysfs[ index ] )
-      if val != ""
-        ret[ attrs_sd[ index ] ] = val 
-      end
-    end
-
-    return ret
+    return map_prefixed_attrs( port , "l2_hash_key_" , attrs_sysfs , attrs_sd )
   end
 
 
@@ -174,8 +168,6 @@ Ohai.plugin(:IntelSwitch) do
   # Returns:
   # (Mash) the mash of the L3 configuration
   def get_l3_hash_config( port )
-    ret = Mash.new
-
     attrs_sysfs = %w[ sip_mask dip_mask l4_src_mask l4_dst_mask dscp_mask isl_user_mask 
                          protocol_mask flow_mask symmetrize_l3_fields ecmp_rotation protocol1 protocol2 
                          use_tcp use_udp use_protocol1 use_protocol2 ]
@@ -184,14 +176,7 @@ Ohai.plugin(:IntelSwitch) do
                       ProtocolMask FlowMask SymmetrizeL3Fields EcmpRotation Protocol1 Protocol2 
                       UseTcp UseUdp UseProtocol1 UseProtocol2 ]
 
-    for index in 0 ... attrs_sysfs.size
-      val = get_attr( port , "l3_hash_config_" + attrs_sysfs[ index ] )
-      if val != ""
-        ret[ attrs_sd[ index ] ] = val 
-      end
-    end
-
-    return ret
+    return map_prefixed_attrs( port , "l3_hash_config_" , attrs_sysfs , attrs_sd )
   end
 
 
@@ -268,29 +253,25 @@ Ohai.plugin(:IntelSwitch) do
   def get_ports
     ports = Mash.new
 
-    so = shell_out( "ls /sys/class/net/" )
-
-    so.stdout.lines do |line|
-      if File.directory?( "/sys/class/net/" + line.strip + "/switch" )
-        if line.strip == "sw0p0"
-          ports[ line.strip ] = {
-            :Attributes => get_attributes( line.strip ),
-            :QOS => get_qos( line.strip ),
-            :RateLimit => get_rate_limit( line.strip ),
-            :L2HashKey => get_l2_hash_key( line.strip ),
-            :L3HashConfig => get_l3_hash_config( line.strip )
+    each_switch_netdev do |name|
+      if name == "sw0p0"
+        ports[ name ] = {
+          :Attributes => get_attributes( name ),
+          :QOS => get_qos( name ),
+          :RateLimit => get_rate_limit( name ),
+          :L2HashKey => get_l2_hash_key( name ),
+          :L3HashConfig => get_l3_hash_config( name )
+        }
+      else
+        if is_port( name ) == true
+          ports[ name ] = {
+            :Enabled => get_state( name ),
+            :Attributes => get_attributes( name ),
+            :RateLimit => get_rate_limit( name ),
+            :Vlans => get_vlans( name ),
+            :QOS => get_qos( name ),
+            :FDB => get_fdbs( name )
           }
-        else
-          if is_port( line.strip ) == true
-            ports[ line.strip ] = {
-              :Enabled => get_state( line.strip ),
-              :Attributes => get_attributes( line.strip ),
-              :RateLimit => get_rate_limit( line.strip ),
-              :Vlans => get_vlans( line.strip ),
-              :QOS => get_qos( line.strip ),
-              :FDB => get_fdbs( line.strip )
-            }
-          end
         end
       end
     end
@@ -319,22 +300,18 @@ Ohai.plugin(:IntelSwitch) do
   def get_teams
     teams = Mash.new
 
-    so = shell_out( "ls /sys/class/net/" )
-
     # get all the masters
-    so.stdout.lines do |line|
-      if File.directory?( "/sys/class/net/" + line.strip + "/switch" )
-        portline = shell_out( "ip link show " + line.strip + " | head -n 1" ).stdout.strip
-        if portline =~ /master (\w+)/
-          if teams.key?( $1 ) == false
-            teams[ $1 ] = {
-              "Enabled" => get_state( $1 ),
-              "Members" => get_team_members( $1 ),
-              "Attributes" => get_attributes( $1 ),
-              "Vlans" => get_vlans( $1 ),
-              "FDB" => get_fdbs( $1 )
-            }
-          end
+    each_switch_netdev do |name|
+      portline = shell_out( "ip link show " + name + " | head -n 1" ).stdout.strip
+      if portline =~ /master (\w+)/
+        if teams.key?( $1 ) == false
+          teams[ $1 ] = {
+            "Enabled" => get_state( $1 ),
+            "Members" => get_team_members( $1 ),
+            "Attributes" => get_attributes( $1 ),
+            "Vlans" => get_vlans( $1 ),
+            "FDB" => get_fdbs( $1 )
+          }
         end
       end
     end
@@ -349,15 +326,11 @@ Ohai.plugin(:IntelSwitch) do
   def get_team_members( master )
     members = Array.new
 
-    so = shell_out( "ls /sys/class/net/" )
-
     # get all the masters
-    so.stdout.lines do |line|
-      if File.directory?( "/sys/class/net/" + line.strip + "/switch" )
-        portline = shell_out( "ip link show " + line.strip + " | head -n 1" ).stdout.strip
-        if portline =~ /\d+: (\w+):.*?master #{master}/
-          members.push( $1 )
-        end
+    each_switch_netdev do |name|
+      portline = shell_out( "ip link show " + name + " | head -n 1" ).stdout.strip
+      if portline =~ /\d+: (\w+):.*?master #{master}/
+        members.push( $1 )
       end
     end
 
@@ -487,21 +460,15 @@ Ohai.plugin(:IntelSwitch) do
   # Params:
   def get_ufd
     ret = Mash.new
-    
-    soports = shell_out( "ls /sys/class/net/" )
 
     # get all the masters
-    soports.stdout.lines do |port|
-      if File.directory?( "/sys/class/net/" + port.strip + "/switch" )
-
-        boundports = get_ufd_port_binds( port.strip )  
-        if boundports.length > 0
-          ret[ port.strip ] = {
-            "Enabled" => true,
-            "BindCarrier" => boundports.join( " " )
-          }
-        end
-
+    each_switch_netdev do |name|
+      boundports = get_ufd_port_binds( name )
+      if boundports.length > 0
+        ret[ name ] = {
+          "Enabled" => true,
+          "BindCarrier" => boundports.join( " " )
+        }
       end
     end
 

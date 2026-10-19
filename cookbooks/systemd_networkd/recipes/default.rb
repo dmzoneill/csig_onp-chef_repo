@@ -22,12 +22,7 @@ node.default[ "SystemdNetworkd" ][ "outdir" ] = outdir
 createdirs = [ "/etc/systemd/network" , "/etc/systemd/network/backup" ]
 createdirs.each do |dir|
   ### Create networkd dirs if they don't exist ###
-  directory dir do
-    owner 'systemd-network'
-    group 'systemd-network'
-    mode '0755'
-    action :create
-  end
+  ensure_networkd_dir(dir)
 end
 
 ### create backup dir
@@ -75,44 +70,14 @@ ufds_enabled = []
 teams_enabled = []
 
 node[ "SystemdNetworkd" ][ "PortId" ].each do |port|
-  if node.include?( "SystemdNetworkd" )
-    if node[ "SystemdNetworkd" ].include?( "Ports" )
-      if node[ "SystemdNetworkd" ][ "Ports" ].include?( port )
-        if node[ "SystemdNetworkd" ][ "Ports" ][ port ].include?( "Enabled" )
-          if node[ "SystemdNetworkd" ][ "Ports" ][ port ][ "Enabled" ] == true
-            
-	    ports_enabled.push( port )
-
-          end
-        end
-      end
-    end
-
-    if node[ "SystemdNetworkd" ].include?( "UFD" )
-      if node[ "SystemdNetworkd" ][ "UFD" ].include?( port )
-        if node[ "SystemdNetworkd" ][ "UFD" ][ port ].include?( "Enabled" )
-          if node[ "SystemdNetworkd" ][ "UFD" ][ port ][ "Enabled" ] == true
-
-            ufds_enabled.push( port )
-
-          end
-        end
-      end
-    end
-  end
+  ports_enabled.push( port ) if networkd_enabled?( "Ports" , port )
+  ufds_enabled.push( port ) if networkd_enabled?( "UFD" , port )
 end
 
-if node.include?( "SystemdNetworkd" )
-  if node[ "SystemdNetworkd" ].include?( "Teams" )
-    node[ "SystemdNetworkd" ][ "Teams" ].each do |team,teamopts|
-      if node[ "SystemdNetworkd" ][ "Teams" ][ team ].include?( "Enabled" )
-        if node[ "SystemdNetworkd" ][ "Teams" ][ team ][ "Enabled" ] == true
-
-          teams_enabled.push( team )
-
-        end
-      end
-    end    
+cfg = systemd_networkd
+if cfg && cfg.include?( "Teams" )
+  cfg[ "Teams" ].each do |team, _teamopts|
+    teams_enabled.push( team ) if networkd_enabled?( "Teams" , team )
   end
 end
 

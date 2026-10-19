@@ -44,6 +44,20 @@ node['ohai']['plugins'].each_pair do |source_cookbook, path|
   reload_ohai ||= rd.updated?
 end
 
+# The intel_switch plugin is maintained once, in systemd_networkd. Install
+# that copy over the placeholder distributed with this cookbook.
+if run_context.cookbook_collection.respond_to?(:keys) &&
+   run_context.cookbook_collection.keys.include?('systemd_networkd')
+  canonical_plugin = cookbook_file ::File.join(node['ohai']['plugin_path'], 'intel_switch.rb') do
+    cookbook 'systemd_networkd'
+    source 'intel_switch.rb'
+    mode '0755' unless platform_family?('windows')
+    action :nothing
+  end
+  canonical_plugin.run_action(:create)
+  reload_ohai ||= canonical_plugin.updated?
+end
+
 resource = ohai 'custom_plugins' do
   action :nothing
 end

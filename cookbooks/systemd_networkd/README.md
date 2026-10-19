@@ -204,7 +204,8 @@ There are 2 files in systemd_networkd/files/default
 
 Method 1 (Chef Server):
 On the chef workstation, modify the configuration to include a key "Backup": true under "SystemdNetworkd".
-You will need the cookbook "ohai" and copy the intel_switch plugin to the cookbooks/ohai/files/ directory.
+Include the cookbooks "ohai" and "systemd_networkd". The ohai default recipe installs
+cookbooks/systemd_networkd/files/default/intel_switch.rb into the ohai plugin path.
 Running the chef-client on the node will result in /etc/systemd/network/backup/XXXX being created.
 
 Method 2 (Solo):

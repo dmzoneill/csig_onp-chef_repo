@@ -10,12 +10,7 @@
 outdir = node[ "SystemdNetworkd" ][ "outdir" ]
 
 ### Create network/team directory if necessary ###
-directory "#{outdir}/team" do
-  owner 'systemd-network'
-  group 'systemd-network'
-  mode '0755'
-  action :create
-end
+ensure_networkd_subdir( "team" )
 
 if node.include?( "SystemdNetworkd" )    
   if node[ "SystemdNetworkd" ].include?( "Teams" )    
