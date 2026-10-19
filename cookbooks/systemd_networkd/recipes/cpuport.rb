@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #
 # Cookbook Name:: systemd_networkd
 # Recipe:: cpuport
@@ -7,43 +9,28 @@
 # All rights reserved - Do Not Redistribute
 #
 
-outdir = node[ "SystemdNetworkd" ][ "outdir" ]
+outdir = node['SystemdNetworkd']['outdir']
 
 ### Create network/cpuport directory if necessary ###
-directory "#{outdir}/cpuport" do
-  owner 'systemd-network'
-  group 'systemd-network'
-  mode '0755'
-  action :create
-end
+ensure_networkd_subdir('cpuport')
 
+cpu_port = node['SystemdNetworkd']['Ports']['sw0p0'] if node.include?('SystemdNetworkd') &&
+                                                        node['SystemdNetworkd'].include?('Ports') &&
+                                                        node['SystemdNetworkd']['Ports'].include?('sw0p0')
+cpu_keys = %w[L2HashKey L3HashConfig Attributes RateLimit Vlans QOS]
+if cpu_port && cpu_keys.any? { |key| cpu_port.include?(key) }
 
-if node.include?( "SystemdNetworkd" )    
-  if node[ "SystemdNetworkd" ].include?( "Ports" )   
-
-    if node[ "SystemdNetworkd" ][ "Ports" ].include?( "sw0p0" ) 
-      if node[ "SystemdNetworkd" ][ "Ports" ][ "sw0p0" ].include?( "L2HashKey" ) ||
-        node[ "SystemdNetworkd" ][ "Ports" ][ "sw0p0" ].include?( "L3HashConfig" ) ||
-        node[ "SystemdNetworkd" ][ "Ports" ][ "sw0p0" ].include?( "Attributes" ) ||
-        node[ "SystemdNetworkd" ][ "Ports" ][ "sw0p0" ].include?( "RateLimit" ) ||
-        node[ "SystemdNetworkd" ][ "Ports" ][ "sw0p0" ].include?( "Vlans" ) ||
-        node[ "SystemdNetworkd" ][ "Ports" ][ "sw0p0" ].include?( "QOS" )
-
-        template "#{outdir}/cpuport/sw0p0.swport" do
-          source "cpuport/cpuport.erb"
-          mode 0644
-          owner "systemd-network"
-          group "systemd-network"
-          action :create
-          notifies :restart, "service[systemd-networkd]", :delayed
-        end
-        
-        link "#{outdir}/sw0p0.swport" do
-          to "#{outdir}/cpuport/sw0p0.swport"
-        end
-
-      end
-    end
-   
+  template "#{outdir}/cpuport/sw0p0.swport" do
+    source 'cpuport/cpuport.erb'
+    mode 0o644
+    owner 'systemd-network'
+    group 'systemd-network'
+    action :create
+    notifies :restart, 'service[systemd-networkd]', :delayed
   end
+
+  link "#{outdir}/sw0p0.swport" do
+    to "#{outdir}/cpuport/sw0p0.swport"
+  end
+
 end

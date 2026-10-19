@@ -7,7 +7,7 @@ package VerifyConfig;
 
 my $instance = undef;
 
-sub new()
+sub new
 {
 	my $class = shift;
 
@@ -21,6 +21,50 @@ sub new()
 	$instance = bless( $self , $class );
 
 	return $instance;
+}
+
+sub _port_columns
+{
+	my $ports = shift;
+	my $lag_true = shift;
+	my @port_list = ();
+	my @port_bool = ();
+
+	if ( $lag_true == 1 )
+	{
+		for ( my $j = 0; $j <= $#{ $ports }; $j++ )
+		{
+			$port_list[ $j ] = $ports->[ $j ][ 0 ];
+			$port_bool[ $j ] = $ports->[ $j ][ 1 ];
+		}
+	}
+	else
+	{
+		for ( my $j = 0, my $i = 0; $j <= $#{ $ports }; $j += 2, $i++ )
+		{
+			$port_list[ $i ] = $ports->[ $j ];
+			$port_bool[ $i ] = $ports->[ $j + 1 ];
+		}
+	}
+
+	return ( \@port_list, \@port_bool );
+}
+
+sub _log_outcome
+{
+	my $label = shift;
+	my $mismatch = shift;
+
+	if ( $mismatch == 0 )
+	{
+		CMLogger->new()->logLine( "$label test passed!" );
+	}
+	else
+	{
+		CMLogger->new()->logLine( "$label test failed!" );
+	}
+
+	return $mismatch;
 }
 
 sub validatePortState
@@ -51,16 +95,7 @@ sub validatePortState
 		}
 	}
 	
-	if ( $mismatchFlag == 0 ) 
-	{
-		CMLogger->new()->logLine( "Port state test passed!" );
-	}
-	else
-	{
-		CMLogger->new()->logLine( "Port state test failed!" );
-	}
-	
-	return $mismatchFlag;
+	return _log_outcome( "Port state", $mismatchFlag );
 }
 
 sub validatePortSpeed
@@ -88,16 +123,7 @@ sub validatePortSpeed
 		}
 	}
 	
-	if ( $mismatchFlag == 0 ) 
-	{
-		CMLogger->new()->logLine( "Port speed test passed!" );
-	}
-	else
-	{
-		CMLogger->new()->logLine( "Port speed test failed!" );
-	}
-	
-	return $mismatchFlag;
+	return _log_outcome( "Port speed", $mismatchFlag );
 }
 
 sub validateCpuAttributes
@@ -154,16 +180,7 @@ sub validateCpuAttributes
 		$mismatchFlag = 1;
 	}
 
-	if ( $mismatchFlag == 0 )
-	{
-		CMLogger->new()->logLine( "CPU Port attribute test passed!" );
-	}
-	else
-	{
-		CMLogger->new()->logLine( "CPU Port attribute test failed!" );
-	}
-
-	return $mismatchFlag;
+	return _log_outcome( "CPU Port attribute", $mismatchFlag );
 }
 
 sub validatePortAttributes
@@ -174,26 +191,11 @@ sub validatePortAttributes
 	my $lagTrue = shift;
 
 	my $mismatchFlag = 0;
-	my @port_list = ();
-	my @port_bool = ();
+	my ( $port_list_ref, $port_bool_ref ) = _port_columns( $ports, $lagTrue );
+	my @port_list = @{ $port_list_ref };
+	my @port_bool = @{ $port_bool_ref };
 
 	CMLogger->new()->logLine( "Checking port attributes..." );
-	if ( $lagTrue == 1 )
-	{
-		for ( my $j = 0; $j <= $#{ $ports }; $j++ )
-		{
-			$port_list[ $j ] = $ports->[ $j ][ 0 ];
-                        $port_bool[ $j ] = $ports->[ $j ][ 1 ];
-		}
-	}
-	else
-	{
-		for ( my $j = 0, my $i = 0; $j <= $#{ $ports }; $j += 2, $i++ )
-		{
-			$port_list[ $i ] = $ports->[ $j ];
-			$port_bool[ $i ] = $ports->[ $j + 1 ];
-		}
-	}
 
 	for ( my $j = 0; $j <= $#port_list; $j++ )
 	{
@@ -246,16 +248,7 @@ sub validatePortAttributes
 			}
 		}
 	}
-	if ( $mismatchFlag == 0 ) 
-	{
-		CMLogger->new()->logLine( "Port attributes test passed!" );
-	}
-	else
-	{
-		CMLogger->new()->logLine( "Port attributes test failed!" );
-	}
-
-	return $mismatchFlag;
+	return _log_outcome( "Port attributes", $mismatchFlag );
 }
 
 sub validateStaticMacTable
@@ -266,26 +259,11 @@ sub validateStaticMacTable
 	my $lagTrue = shift;
 
 	my $mismatchFlag = 0;
-        my @port_list = ();
-        my @port_bool = ();
+	my ( $port_list_ref, $port_bool_ref ) = _port_columns( $ports, $lagTrue );
+	my @port_list = @{ $port_list_ref };
+	my @port_bool = @{ $port_bool_ref };
 
 	CMLogger->new()->logLine( "Checking static MAC table..." );
-	if ( $lagTrue == 1 )
-	{
-		for ( my $j = 0; $j <= $#{ $ports }; $j++ )
-                {
-                        $port_list[ $j ] = $ports->[ $j ][ 0 ];
-                        $port_bool[ $j ] = $ports->[ $j ][ 1 ];
-                }
-	}
-	else
-	{
-		for ( my $j = 0, my $i = 0; $j <= $#{ $ports }; $j += 2, $i++ )
-                {
-                        $port_list[ $i ] = $ports->[ $j ];
-                        $port_bool[ $i ] = $ports->[ $j + 1 ];
-                }
-	}
 
 	for ( my $j = 0, my $i = 0; $j <= $#{ $ports }; $j += 2, $i++ )
 	{
@@ -302,16 +280,7 @@ sub validateStaticMacTable
 		}
         }
 
-	if ( $mismatchFlag == 0 ) 
-	{
-		CMLogger->new()->logLine( "Static MAC table test passed!" );
-	}
-	else
-	{
-		CMLogger->new()->logLine( "Static MAC table test failed!" );
-	}
-
-	return $mismatchFlag;
+	return _log_outcome( "Static MAC table", $mismatchFlag );
 }
 
 sub validateStaticVlan
@@ -322,27 +291,11 @@ sub validateStaticVlan
 	my $lagTrue = shift;
 
 	my $mismatchFlag = 0;
-        my @port_list = ();
-        my @port_bool = ();
+	my ( $port_list_ref, $port_bool_ref ) = _port_columns( $ports, $lagTrue );
+	my @port_list = @{ $port_list_ref };
+	my @port_bool = @{ $port_bool_ref };
 
 	CMLogger->new()->logLine( "Checking static VLAN..." );
-	if ( $lagTrue == 1 )
-	{
-		for ( my $j = 0; $j <= $#{ $ports }; $j++ )
-                {
-			$port_list[ $j ] = $ports->[ $j ][ 0 ];
-                        $port_bool[ $j ] = $ports->[ $j ][ 1 ];
-		}
-	}
-	else
-	{
-		for ( my $j = 0, my $i = 0; $j <= $#{ $ports }; $j += 2, $i++ )
-                {
-                        $port_list[ $i ] = $ports->[ $j ];
-                        $port_bool[ $i ] = $ports->[ $j + 1 ];
-                }
-	} 
-	
 
 	for ( my $j = 0, my $i = 0; $j <= $#{ $ports }; $j += 2, $i++ )
 	{
@@ -362,16 +315,7 @@ sub validateStaticVlan
 		}
 	}
 
-	if ( $mismatchFlag == 0 ) 
-	{
-		CMLogger->new()->logLine( "Static VLAN test passed!" );
-	}
-	else
-	{
-		CMLogger->new()->logLine( "Static VLAN test failed!" );
-	}
-
-	return $mismatchFlag;
+	return _log_outcome( "Static VLAN", $mismatchFlag );
 }
 
 sub validateLag
@@ -398,16 +342,7 @@ sub validateLag
 		}
 	}
 
-	if ( $mismatchFlag == 0 ) 
-	{
-		CMLogger->new()->logLine( "LAG test passed!" );
-	}
-	else
-	{
-		CMLogger->new()->logLine( "LAG test failed!" );
-	}
-
-	return $mismatchFlag;
+	return _log_outcome( "LAG", $mismatchFlag );
 }
 
 sub validateUfd
@@ -473,16 +408,7 @@ sub validateUfd
 	}
 
 
-	if ( $mismatchFlag == 0 ) 
-	{
-		CMLogger->new()->logLine( "UFD test passed!" );
-	}
-	else
-	{
-		CMLogger->new()->logLine( "UFD test failed!" );
-	}
-
-	return $mismatchFlag;
+	return _log_outcome( "UFD", $mismatchFlag );
 }
 
 1;

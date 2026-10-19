@@ -7,7 +7,7 @@ package CMLogger;
 
 my $instance = undef;
 
-sub new()
+sub new
 {
 	my $class = shift;
 
@@ -35,10 +35,10 @@ sub new()
 }
 
 
-sub logLine
+sub _write_log
 {
 	my $self = shift;
-	my $line = shift;
+	my $writer = shift;
 
 	if( !defined( $self->{ _logDescriptor } ) )
 	{
@@ -47,57 +47,52 @@ sub logLine
 
 	if( defined( $self->{ _logDescriptor } ) )
 	{
-		my $tf = $self->{ _logDescriptor };
-		print $tf $line . "\n";			
+		$writer->( $self->{ _logDescriptor } );
 	}
+}
+
+sub logLine
+{
+	my $self = shift;
+	my $line = shift;
+
+	$self->_write_log( sub {
+		my $handle = shift;
+		print $handle $line . "\n";
+	} );
+}
+
+sub _log_banner
+{
+	my $self = shift;
+	my $width = shift;
+	my $label = shift;
+	my $value = shift;
+	my $separator = ( "=" x $width ) . "\n";
+	my $line = " $label: $value\n";
+
+	$self->_write_log( sub {
+		my $handle = shift;
+		print $handle $separator;
+		print $handle $line;
+		print $handle $separator;
+	} );
 }
 
 sub logSection
 {
 	my $self = shift;
 	my $case = shift;
-	
-	my $sep = "=" x 80;
-	$sep .= "\n";
-	
-	my $line = " Test Case: $case\n";
-	
-	if( !defined( $self->{ _logDescriptor } ) )
-	{
-		open( $self->{ _logDescriptor }, ">", $self->{ _logFilePath } );
-	}
 
-	if( defined( $self->{ _logDescriptor } ) )
-	{
-		my $tf = $self->{ _logDescriptor };
-		print $tf $sep;
-		print $tf $line;
-		print $tf $sep;		
-	}
+	$self->_log_banner( 80, "Test Case", $case );
 }
 
 sub logSubSection
 {
 	my $self = shift;
 	my $operation = shift;
-	
-	my $sep = "=" x 60;
-	$sep .= "\n";
-	
-	my $line = " Operation: $operation\n";
-	
-	if( !defined( $self->{ _logDescriptor } ) )
-	{
-		open( $self->{ _logDescriptor }, ">", $self->{ _logFilePath } );
-	}
 
-	if( defined( $self->{ _logDescriptor } ) )
-	{
-		my $tf = $self->{ _logDescriptor };
-		print $tf $sep;
-		print $tf $line;
-		print $tf $sep;		
-	}
+	$self->_log_banner( 60, "Operation", $operation );
 }
 
 
