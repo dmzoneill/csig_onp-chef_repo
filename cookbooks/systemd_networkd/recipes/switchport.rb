@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #
 # Cookbook Name:: systemd_networkd
 # Recipe:: switchport
@@ -7,50 +9,35 @@
 # All rights reserved - Do Not Redistribute
 #
 
-outdir = node[ "SystemdNetworkd" ][ "outdir" ]
+outdir = node['SystemdNetworkd']['outdir']
 
 ### Create network/switchport directory if necessary ###
-directory "#{outdir}/switchport" do
-  owner 'systemd-network'
-  group 'systemd-network'
-  mode '0755'
-  action :create
-end
+ensure_networkd_subdir('switchport')
 
 # create .swport files for each enabled port
-node[ "SystemdNetworkd" ][ "PortId" ].each do |port|
-  swport_enabled = false
+node['SystemdNetworkd']['PortId'].each do |port|
+  settings = port_settings(port)
+  next unless settings
 
-  if node.include?( "SystemdNetworkd" )  
-    if node[ "SystemdNetworkd" ].include?( "Ports" )    
-      if node[ "SystemdNetworkd" ][ "Ports" ].include?( port )    
-        if node[ "SystemdNetworkd" ][ "Ports" ][ port ].include?( "Enabled" )
-          if node[ "SystemdNetworkd" ][ "Ports" ][ port ][ "Enabled" ] == true || node[ "SystemdNetworkd" ][ "Backup" ] == true
-            if node[ "SystemdNetworkd" ][ "Ports" ][ port ].include?( "Attributes" ) || node[ "SystemdNetworkd" ][ "Ports" ][ port ].include?( "QOS" ) || node[ "SystemdNetworkd" ][ "Ports" ][ port ].include?( "RateLimit" )
-              swport_enabled = true 
+  has_switch_config = settings.include?('Attributes') ||
+                      settings.include?('QOS') ||
+                      settings.include?('RateLimit')
+  next unless port_or_backup?(port) && has_switch_config
 
-              template "#{outdir}/switchport/#{port}.swport" do
-                source "switchport/switchport.erb"
-                variables({
-                  :DevName => port
-                })
-                mode 0644
-                owner "systemd-network"
-                group "systemd-network"
-                action :create
-                notifies :restart, "service[systemd-networkd]", :delayed
-              end
+  template "#{outdir}/switchport/#{port}.swport" do
+    source 'switchport/switchport.erb'
+    variables({
+                DevName: port
+              })
+    mode 0o644
+    owner 'systemd-network'
+    group 'systemd-network'
+    action :create
+    notifies :restart, 'service[systemd-networkd]', :delayed
+  end
 
-              ### Create symlinks ###
-              link "#{outdir}/#{port}.swport" do
-                to "#{outdir}/switchport/#{port}.swport"
-              end
-            end
-          end
-        end
-      end
-    end
+  ### Create symlinks ###
+  link "#{outdir}/#{port}.swport" do
+    to "#{outdir}/switchport/#{port}.swport"
   end
 end
-
-

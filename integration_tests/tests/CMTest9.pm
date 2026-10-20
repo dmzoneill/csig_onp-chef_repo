@@ -1,114 +1,45 @@
-#!/usr/local/bin/perl 
+#!/usr/local/bin/perl
 
 package CMTest9;
 
 use strict;
 use warnings;
 use lib './modules';
-use TestLib;
-use CMLogger;
-use VerifyConfig;
+use CMTestSupport;
 
 our @ISA = qw(TestLib);
 
-# Same attributes are applied to both ports #
-my @attrList = qw( UseL3Hash 0 UseUdp 0 LagMode 1 DscpSwpriMap 3 McastCapacity 2048 );
-my $port = "sw0p0";
+# Same attributes are applied to the CPU port.
+my @attrList = qw(UseL3Hash 0 UseUdp 0 LagMode 1 DscpSwpriMap 3 McastCapacity 2048);
+my $port = 'sw0p0';
 
-sub new
-{
-	my $class = shift;
-	my $fqdn = shift;
-	my $attrFile = shift;
-	my $recipe = shift;
-	
-	my $self = $class->SUPER::new( $fqdn, $attrFile, $recipe, [] );
-	bless( $self, $class );
-	
-	CMLogger->new()->logSection( "1" );
-	
-	return $self;
+sub new {
+    my $class = shift;
+    # Historical log section label is "1", matching the previous test file.
+    return CMTestSupport::build($class, '1', [], @_);
 }
 
-sub checkConfig 
-{
-	my $self = shift;
-	my $flag = 0;
-	my $lagTrue = 0;
-	
-	CMLogger->new()->logSubSection( "Checking Configuration" );
-	$flag = VerifyConfig->new()->validateCpuAttributes( $port, \@attrList );
-	
-	if ( $flag == 0 ) 
-	{
-		print "Test 9: passed\n";
-	}
-	else
-	{
-		print "Test 9: failed\nSee log for details\n";
-	}
+sub checkConfig {
+    my $self = shift;
+    CMTestSupport::report_result('9', sub {
+        return VerifyConfig->new()->validateCpuAttributes($port, \@attrList);
+    });
+    return;
 }
 
-sub getAttributes 
-{
-	my $self = shift;
-	
-	CMLogger->new()->logSubSection( "Chef Attributes" );
-
-	my $attrTest = "";
-	
-	# Variable protion of the attributes file, depending on test number #
-	$attrTest = <<END;	
-{
-  "name": "$self->{ _fqdn }",
-  "normal": {
-    "SystemdNetworkd": {
-      "Ports": {
-        "$port": {
-          "L2HashKey": [
-            [
-              "$attrList[0]",
-              "$attrList[1]"
-            ]
-          ],
-	  "L3HashConfig": [
-	    [
-		"$attrList[2]",
-		"$attrList[3]"
-	    ]
-	  ],
-          "Attributes": [
-            [
-              "$attrList[4]",
-              "$attrList[5]"
-            ]
-          ],
-          "QOS": [
-            [
-              "$attrList[6]",
-              "$attrList[7]"
-            ]
-	  ],
-          "CpuRateLimit": [
-            [
-              "$attrList[8]",
-              "$attrList[9]"
-            ]
-          ]
-        }
-      }
-    }
-  },
-  "run_list": [
-    "recipe[$self->{ _recipe }]"
-  ]
-}
-END
-
-	CMLogger->new()->logLine( $attrTest );
-	
-	# Return contents of attribute file #
-	return ($attrTest);
+sub getAttributes {
+    my ($self) = @_;
+    return CMTestSupport::emit($self, {
+        Ports => {
+            $port => {
+                L2HashKey   => CMTestSupport::pairs($attrList[0], $attrList[1]),
+                L3HashConfig => CMTestSupport::pairs($attrList[2], $attrList[3]),
+                Attributes  => CMTestSupport::pairs($attrList[4], $attrList[5]),
+                QOS         => CMTestSupport::pairs($attrList[6], $attrList[7]),
+                CpuRateLimit => CMTestSupport::pairs($attrList[8], $attrList[9]),
+            },
+        },
+    });
 }
 
 1;

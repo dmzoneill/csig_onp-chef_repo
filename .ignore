@@ -1,0 +1,12 @@
+# Vendored third-party cookbooks. jscpd 5 reads this file even when CI
+# overwrites .github/linters/.jscpd.json. First-party cookbooks and
+# integration tests stay in the duplication scan.
+cookbooks/chef_handler/
+cookbooks/krb5/
+cookbooks/motd/
+cookbooks/ntp/
+cookbooks/ohai/
+cookbooks/selinux/
+cookbooks/sssd_ldap/
+cookbooks/yum/
+cookbooks/yum-fedora/
