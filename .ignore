@@ -1,6 +1,7 @@
 # Vendored third-party cookbooks. jscpd 5 reads this file even when CI
-# overwrites .github/linters/.jscpd.json. First-party cookbooks and
-# integration tests stay in the duplication scan.
+# overwrites .github/linters/.jscpd.json. checks.sh exports the same paths
+# as FILTER_REGEX_EXCLUDE for the other Super-linter validators.
+# First-party cookbooks and integration tests stay in the scan.
 cookbooks/chef_handler/
 cookbooks/krb5/
 cookbooks/motd/
