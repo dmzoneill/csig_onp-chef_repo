@@ -1,16 +1,14 @@
+# Overview
+
 <p align="center">
   <img src=".github/logo.png" alt="csig_onp-chef_repo logo" width="128" />
 </p>
-
-Overview
-========
 
 Every Chef installation needs a Chef Repository. This is the place where cookbooks, roles, config files and other artifacts for managing systems with Chef will live. We strongly recommend storing this repository in a version control system such as Git and treat it like source code.
 
 While we prefer Git, and make this repository available via GitHub, you are welcome to download a tar or ZIP archive and use your favorite version control system to manage the code.
 
-Repository Directories
-======================
+## Repository Directories
 
 This repository contains several directories, and each directory contains a readme file that describes what it is for in greater detail, and how to use it for managing your systems with Chef.
 
@@ -20,8 +18,7 @@ This repository contains several directories, and each directory contains a read
 - `data_bags/` - Store data bags and items in .json in the repository.
 - `roles/` - Store roles in .rb or .json in the repository.
 
-Rake Tasks
-==========
+## Rake Tasks
 
 The repository contains a `Rakefile` that includes tasks that are installed with the Chef libraries. To view the tasks available with in the repository with a brief description, run `rake -T`.
 
@@ -45,8 +42,7 @@ The following tasks duplicate functionality from knife and may be removed in a f
 - `upload_cookbooks` - replaced by `knife cookbook upload -a`.
 - `upload_cookbook[cookbook]` - replaced by `knife cookbook upload COOKBOOK`.
 
-Configuration
-=============
+## Configuration
 
 The repository uses two configuration files.
 
@@ -64,7 +60,6 @@ The second config file, `.chef/knife.rb` is a repository specific configuration 
 
 <http://docs.opscode.com/knife.html>
 
-Next Steps
-==========
+## Next Steps
 
 Read the readme file in each of the subdirectories for more information about what goes in those directories.
