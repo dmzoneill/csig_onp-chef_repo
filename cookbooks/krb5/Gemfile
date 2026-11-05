@@ -1,10 +1,10 @@
 source 'https://rubygems.org'
 
-gem 'berkshelf', '~> 3.2'
-gem 'chefspec', '~> 7.4'
+gem 'berkshelf', '~> 8.1'
+gem 'chefspec', '~> 9.3'
 gem 'chef-zero', '~> 15.1'
 gem 'foodcritic', '~> 16.3'
-gem 'rubocop', '~> 1.31.0'
+gem 'rubocop', '~> 1.92.2'
 gem 'rubocop-checkstyle_formatter', require: false
 
 group :integration do
